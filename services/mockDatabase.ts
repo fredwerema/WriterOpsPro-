@@ -3,29 +3,42 @@ import { Profile, Task, TaskStatus, Transaction, UserRole, Bid, JOB_CATEGORIES }
 
 // --- UPDATED SQL SCRIPT FOR PERMISSIVE ACCESS ---
 export const SQL_SETUP_SCRIPT = `
--- 1. DROP EXISTING POLICIES FIRST
--- Postgres prevents altering column types if they are used in policies.
--- We must drop ALL potential policies referencing 'status' before altering it.
+-- NUCLEAR REPAIR SCRIPT
+-- This uses a PL/pgSQL block to dynamically find and drop ALL policies on the tables.
+-- This avoids "policy depends on column" errors by guaranteeing a clean slate.
 
-drop policy if exists "Anyone can view open tasks" on public.tasks;
-drop policy if exists "Writers can view assigned tasks" on public.tasks;
-drop policy if exists "Enable read access for all users" on public.tasks;
-drop policy if exists "Enable all for tasks" on public.tasks;
-drop policy if exists "Public tasks view" on public.tasks;
-drop policy if exists "Authenticated users can upload tasks" on public.tasks;
+DO $$
+DECLARE
+    r RECORD;
+BEGIN
+    -- 1. Loop through and drop policies on 'tasks'
+    FOR r IN SELECT policyname FROM pg_policies WHERE tablename = 'tasks' LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON public.tasks', r.policyname);
+    END LOOP;
+    
+    -- 2. Loop through and drop policies on 'profiles'
+    FOR r IN SELECT policyname FROM pg_policies WHERE tablename = 'profiles' LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON public.profiles', r.policyname);
+    END LOOP;
+    
+    -- 3. Loop through and drop policies on 'bids'
+    FOR r IN SELECT policyname FROM pg_policies WHERE tablename = 'bids' LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON public.bids', r.policyname);
+    END LOOP;
+    
+    -- 4. Loop through and drop policies on 'transactions'
+    FOR r IN SELECT policyname FROM pg_policies WHERE tablename = 'transactions' LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON public.transactions', r.policyname);
+    END LOOP;
+END $$;
 
--- Drop policies on other tables to ensure clean slate
-drop policy if exists "Enable all for profiles" on public.profiles;
-drop policy if exists "Enable all for bids" on public.bids;
-drop policy if exists "Enable all for transactions" on public.transactions;
-
--- 2. ALTER COLUMNS & CONSTRAINTS
--- Now that policies are gone, we can safely change the type to TEXT.
+-- 5. NOW SAFE TO ALTER COLUMNS
+-- Policies are gone, so we can force the status column to be text.
 alter table public.tasks drop constraint if exists tasks_status_check;
 alter table public.tasks alter column status type text using status::text;
 alter table public.tasks alter column status set default 'open';
 
--- 3. CREATE TABLES (Idempotent - only creates if missing)
+-- 6. ENSURE TABLES EXIST (Idempotent)
 create table if not exists public.profiles (
   id uuid references auth.users on delete cascade primary key,
   email text,
@@ -71,14 +84,13 @@ create table if not exists public.transactions (
   date timestamp with time zone default timezone('utc'::text, now())
 );
 
--- 4. ENABLE RLS
+-- 7. ENABLE RLS
 alter table public.profiles enable row level security;
 alter table public.tasks enable row level security;
 alter table public.bids enable row level security;
 alter table public.transactions enable row level security;
 
--- 5. RE-CREATE PERMISSIVE POLICIES
--- These allow the application to function without permission errors.
+-- 8. RE-CREATE PERMISSIVE POLICIES
 create policy "Enable all for profiles" on public.profiles for all using (true) with check (true);
 create policy "Enable all for tasks" on public.tasks for all using (true) with check (true);
 create policy "Enable all for bids" on public.bids for all using (true) with check (true);

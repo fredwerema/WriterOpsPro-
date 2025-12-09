@@ -38,12 +38,16 @@ alter table public.tasks drop constraint if exists tasks_status_check;
 alter table public.tasks alter column status type text using status::text;
 alter table public.tasks alter column status set default 'open';
 
+-- Ensure Profiles has tier column
+alter table public.profiles add column if not exists tier text default 'Basic';
+
 -- 6. ENSURE TABLES EXIST (Idempotent)
 create table if not exists public.profiles (
   id uuid references auth.users on delete cascade primary key,
   email text,
   phone_number text,
   role text default 'writer',
+  tier text default 'Basic',
   is_active boolean default false,
   wallet_balance_cents bigint default 0,
   created_at timestamp with time zone default timezone('utc'::text, now()),
@@ -131,6 +135,7 @@ export const authService = {
                 id: authData.user.id,
                 email: email,
                 role: role,
+                tier: 'Basic',
                 is_active: role === UserRole.ADMIN, // Auto-activate admin
                 wallet_balance_cents: 0
             };
@@ -211,6 +216,7 @@ export const authService = {
         email: email,
         phone_number: phone,
         role: role,
+        tier: 'Basic',
         is_active: isActive,
         wallet_balance_cents: 0
     } as Profile;
@@ -275,6 +281,37 @@ export const paymentService = {
     
     const { error: transError } = await supabase.from('transactions').insert([transaction]);
     if (transError) console.warn("Could not save transaction, but profile updated.", transError);
+
+    return updatedUser as Profile;
+  },
+
+  upgradeTier: async (user: Profile, newTier: 'Pro' | 'Elite', amountCents: number): Promise<Profile> => {
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // 1. Update Profile Tier
+    const { data: updatedUser, error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+            tier: newTier,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+        .select()
+        .single();
+    
+    if (updateError) throw new Error(updateError.message);
+
+    // 2. Record Transaction
+    const transaction: Partial<Transaction> = {
+        user_id: user.id,
+        type: 'subscription',
+        amount_cents: amountCents,
+        mpesa_reference: 'SUB' + Math.random().toString(36).substring(7).toUpperCase(),
+        status: 'complete',
+        date: new Date().toISOString()
+    };
+    
+    await supabase.from('transactions').insert([transaction]);
 
     return updatedUser as Profile;
   }

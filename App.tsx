@@ -106,7 +106,7 @@ const App: React.FC = () => {
         {/* Protected Dashboard Routes - Now accessible to inactive users (requireActivation=false) */}
         <Route path="/dashboard/*" element={
           <ProtectedRoute user={user} requireActivation={false}>
-            <Layout user={user!} onLogout={handleLogout}>
+            <Layout user={user!} onLogout={handleLogout} onUpdateUser={setUser}>
               <Routes>
                 <Route path="tasks" element={<Tasks user={user!} />} />
                 <Route path="wallet" element={<Wallet user={user!} />} />

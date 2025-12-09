@@ -30,6 +30,7 @@ export interface Profile {
   email: string;
   phone_number?: string;
   role: UserRole;
+  tier?: 'Basic' | 'Pro' | 'Elite';
   is_active: boolean;
   wallet_balance_cents: number;
 }
@@ -61,7 +62,7 @@ export interface Bid {
 export interface Transaction {
   id: string;
   user_id: string;
-  type: 'activation_fee' | 'payout' | 'withdrawal';
+  type: 'activation_fee' | 'payout' | 'withdrawal' | 'subscription';
   amount_cents: number;
   mpesa_reference: string;
   status: 'pending' | 'complete' | 'failed';

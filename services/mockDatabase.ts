@@ -49,13 +49,32 @@ create table if not exists public.transactions (
   date timestamp with time zone default timezone('utc'::text, now())
 );
 
--- 2. Enable RLS (Row Level Security)
+-- 2. FIX CONSTRAINTS AND COLUMN TYPES (Crucial for 'Rejected' status)
+do $$ 
+begin 
+    -- 1. Drop any check constraints on status
+    alter table public.tasks drop constraint if exists tasks_status_check;
+    
+    -- 2. Convert status to TEXT to allow any string value (like 'rejected')
+    -- We use 'using status::text' to handle cases where it might be a Postgres ENUM
+    alter table public.tasks alter column status type text using status::text;
+    
+    -- 3. Reset defaults
+    alter table public.tasks alter column status drop default;
+    alter table public.tasks alter column status set default 'open';
+
+exception 
+    when others then 
+        raise notice 'Error fixing columns: %', SQLERRM;
+end $$;
+
+-- 3. Enable RLS (Row Level Security)
 alter table public.profiles enable row level security;
 alter table public.tasks enable row level security;
 alter table public.bids enable row level security;
 alter table public.transactions enable row level security;
 
--- 3. NUCLEAR POLICIES (Allow ALL operations for authenticated users)
+-- 4. NUCLEAR POLICIES (Allow ALL operations for authenticated users)
 -- This fixes the "Failed to process review" error by allowing updates.
 
 -- Profiles
@@ -73,9 +92,6 @@ create policy "Enable all for bids" on public.bids for all using (true) with che
 -- Transactions
 drop policy if exists "Enable all for transactions" on public.transactions;
 create policy "Enable all for transactions" on public.transactions for all using (true) with check (true);
-
--- 4. Storage Objects (Optional, if you use storage)
--- insert into storage.buckets (id, name, public) values ('assignments', 'assignments', true) on conflict do nothing;
 `;
 
 // --- REAL DATABASE SERVICE ---
@@ -458,6 +474,8 @@ export const taskService = {
     try {
         const newStatus = approved ? TaskStatus.COMPLETED : TaskStatus.REJECTED; 
         
+        console.log(`Updating Task ${taskId} to status: ${newStatus}`);
+
         const { error } = await supabase
             .from('tasks')
             .update({ 
@@ -466,15 +484,23 @@ export const taskService = {
             .eq('id', taskId);
 
         if (error) {
-            console.error("Supabase Error:", error);
+            console.error("Supabase Error during review:", error);
             // Check for RLS error specifically
             if (error.code === '42501' || error.message.includes('row-level security')) {
-                return { success: false, message: "Permission Denied. Click 'Fix Database' above to run the setup script." };
+                return { success: false, message: "Permission Denied. Click 'Fix Database' to run the setup script." };
+            }
+            // Check for Invalid Input syntax for enum (common when rejecting if status is enum)
+            if (error.code === '22P02' || error.message.includes('invalid input value for enum')) {
+                 return { success: false, message: "Database Error: The status 'rejected' is invalid. Click 'Fix Database' to fix the column type." };
+            }
+            if (error.code === '23514') { // Check constraint violation
+                 return { success: false, message: "Database Error: The status 'rejected' is restricted. Click 'Fix Database' to update constraints." };
             }
             return { success: false, message: error.message };
         }
         return { success: true };
     } catch (e: any) {
+        console.error("Process Review Exception:", e);
         return { success: false, message: e.message || "Unknown error occurred" };
     }
   }

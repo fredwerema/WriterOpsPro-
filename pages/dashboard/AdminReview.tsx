@@ -14,7 +14,8 @@ import {
   Clock,
   Database,
   Copy,
-  X
+  X,
+  AlertTriangle
 } from 'lucide-react';
 
 const AdminReview: React.FC = () => {
@@ -50,7 +51,12 @@ const AdminReview: React.FC = () => {
     const result = await taskService.processReview(taskId, approved);
     
     if (!result.success) {
-        alert(`Error: ${result.message}`);
+        console.error("Review Process Failed:", result.message);
+        // If error is related to DB/Permissions, automatically show the fix modal
+        if (result.message?.includes('Database') || result.message?.includes('Permission') || result.message?.includes('invalid')) {
+            setShowSql(true);
+        }
+        alert(`Operation Failed: ${result.message}`);
         // Revert on failure
         setReviews(originalReviews);
     }
@@ -190,17 +196,22 @@ const AdminReview: React.FC = () => {
       {showSql && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[80vh]">
-                <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                    <h3 className="text-lg font-bold text-slate-900">Run Database Setup</h3>
+                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-red-50">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-red-100 rounded-lg text-red-600">
+                            <AlertTriangle size={20} />
+                        </div>
+                        <h3 className="text-lg font-bold text-red-900">Database Setup Required</h3>
+                    </div>
                     <button onClick={() => setShowSql(false)} className="text-slate-400 hover:text-slate-600">
                         <X size={24} />
                     </button>
                 </div>
                 <div className="p-6 overflow-y-auto bg-slate-50">
-                    <p className="text-sm text-slate-600 mb-4">
-                        If you are seeing "Permission Denied" or "Failed to process" errors, your database table permissions (RLS) are likely too strict. 
-                        <br/><br/>
-                        <strong>Copy the code below</strong> and run it in the <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer" className="text-blue-600 underline">Supabase SQL Editor</a>.
+                    <p className="text-sm text-slate-600 mb-4 font-medium">
+                        The action failed because the database prevents the 'Rejected' status.
+                        <br/>
+                        <strong>Copy and run the code below</strong> in your Supabase SQL Editor to fix permissions and column types.
                     </p>
                     <div className="relative">
                         <pre className="bg-slate-900 text-slate-300 p-4 rounded-xl text-xs overflow-x-auto font-mono custom-scrollbar border border-slate-700">
@@ -214,13 +225,22 @@ const AdminReview: React.FC = () => {
                             {copied ? 'Copied!' : 'Copy SQL'}
                         </button>
                     </div>
+                    <div className="mt-4 text-xs text-slate-500">
+                        <span className="font-bold">Instructions:</span>
+                        <ol className="list-decimal list-inside mt-1 space-y-1">
+                            <li>Click "Copy SQL" above.</li>
+                            <li>Go to <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer" className="text-blue-600 underline">Supabase Dashboard</a> &gt; SQL Editor.</li>
+                            <li>Paste the code and click <strong>Run</strong>.</li>
+                            <li>Come back here and try again.</li>
+                        </ol>
+                    </div>
                 </div>
                 <div className="p-6 border-t border-slate-100 flex justify-end">
                     <button 
                         onClick={() => setShowSql(false)}
                         className="px-6 py-2 bg-slate-900 text-white font-bold rounded-lg hover:bg-slate-800 transition-colors"
                     >
-                        Close
+                        I have run the script
                     </button>
                 </div>
             </div>

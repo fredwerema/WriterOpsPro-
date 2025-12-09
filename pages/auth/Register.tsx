@@ -20,13 +20,16 @@ const Register: React.FC<RegisterProps> = ({ onLogin }) => {
     setLoading(true);
     setError(null);
     try {
-      // Changed from login to register method
       const user = await authService.register(email, password, phone);
       onLogin(user);
       navigate('/activate');
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Registration failed.");
+      if (err.message && err.message.toLowerCase().includes('already registered')) {
+         setError('Account already exists. Please log in.');
+      } else {
+         setError(err.message || "Registration failed.");
+      }
     } finally {
       setLoading(false);
     }
@@ -42,8 +45,11 @@ const Register: React.FC<RegisterProps> = ({ onLogin }) => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
+            <div className={`p-3 text-sm rounded-lg border ${error.includes('already exists') ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
                 {error}
+                {error.includes('already exists') && (
+                   <Link to="/login" className="block font-bold underline mt-1">Go to Login</Link>
+                )}
             </div>
           )}
 

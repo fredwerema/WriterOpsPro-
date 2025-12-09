@@ -14,7 +14,7 @@ export const authService = {
       password,
     });
 
-    if (authError) throw authError;
+    if (authError) throw new Error(authError.message);
     if (!authData.user) throw new Error("No user found");
 
     // Fetch Profile from DB
@@ -38,7 +38,7 @@ export const authService = {
             await supabase.from('profiles').insert([newProfile]);
             return newProfile;
         }
-        throw profileError;
+        throw new Error(profileError.message);
     }
 
     return profile as Profile;
@@ -56,7 +56,7 @@ export const authService = {
       }
     });
 
-    if (authError) throw authError;
+    if (authError) throw new Error(authError.message);
     
     // Check if session exists (Auto-confirm might be off)
     if (!authData.user) throw new Error("Registration initiated. Please check your email.");
@@ -130,7 +130,7 @@ export const paymentService = {
         .select()
         .single();
 
-    if (updateError) throw updateError;
+    if (updateError) throw new Error(updateError.message);
 
     // 2. Record Transaction
     const transaction: Partial<Transaction> = {
@@ -256,7 +256,7 @@ export const taskService = {
             .from('assignments')
             .upload(filePath, file);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) throw new Error(uploadError.message);
 
         const { data } = supabase.storage
             .from('assignments')
@@ -271,7 +271,7 @@ export const taskService = {
             })
             .eq('id', taskId);
 
-        if (updateError) throw updateError;
+        if (updateError) throw new Error(updateError.message);
 
         return { success: true, message: 'Task submitted for review.' };
 
@@ -292,7 +292,7 @@ export const taskService = {
         .select()
         .single();
     
-    if (error) throw error;
+    if (error) throw new Error(error.message);
     return data as Task;
   },
 

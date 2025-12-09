@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, GraduationCap, Zap, ShieldCheck } from 'lucide-react';
+import { ArrowRight, GraduationCap, Zap, ShieldCheck, Mail, Phone, MapPin, MessageCircle, Twitter, Facebook, Instagram, Linkedin } from 'lucide-react';
 
 const Landing: React.FC = () => {
   return (
@@ -87,6 +87,91 @@ const Landing: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="bg-slate-900 text-white pt-16 pb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+                <div className="col-span-1 md:col-span-1">
+                    <div className="flex items-center gap-2 mb-4">
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">W</div>
+                        <span className="text-xl font-bold text-white">WriterOpsPro</span>
+                    </div>
+                    <p className="text-slate-400 text-sm leading-relaxed mb-6">
+                        Empowering Kenyan freelance writers with consistent work, fair pay, and skill development opportunities.
+                    </p>
+                    <div className="flex gap-4">
+                        <a href="#" className="w-8 h-8 bg-slate-800 flex items-center justify-center rounded-full hover:bg-blue-600 transition-colors"><Facebook size={16}/></a>
+                        <a href="#" className="w-8 h-8 bg-slate-800 flex items-center justify-center rounded-full hover:bg-blue-400 transition-colors"><Twitter size={16}/></a>
+                        <a href="#" className="w-8 h-8 bg-slate-800 flex items-center justify-center rounded-full hover:bg-pink-600 transition-colors"><Instagram size={16}/></a>
+                        <a href="#" className="w-8 h-8 bg-slate-800 flex items-center justify-center rounded-full hover:bg-blue-700 transition-colors"><Linkedin size={16}/></a>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 className="font-bold text-lg mb-4">Quick Links</h4>
+                    <ul className="space-y-3 text-sm text-slate-400">
+                        <li><Link to="/" className="hover:text-white transition-colors">Home</Link></li>
+                        <li><Link to="/register" className="hover:text-white transition-colors">Become a Writer</Link></li>
+                        <li><Link to="/login" className="hover:text-white transition-colors">Login</Link></li>
+                        <li><a href="#" className="hover:text-white transition-colors">Success Stories</a></li>
+                        <li><a href="#" className="hover:text-white transition-colors">Training Academy</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 className="font-bold text-lg mb-4">Support</h4>
+                    <ul className="space-y-3 text-sm text-slate-400">
+                        <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
+                        <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+                        <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" className="hover:text-white transition-colors">Payment Policy</a></li>
+                        <li><a href="#" className="hover:text-white transition-colors">FAQs</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 className="font-bold text-lg mb-4">Contact Us</h4>
+                    <ul className="space-y-4 text-sm text-slate-400">
+                        <li className="flex items-start gap-3">
+                            <Mail size={18} className="text-blue-500 flex-shrink-0" />
+                            <span>fredwerema12@gmail.com</span>
+                        </li>
+                        <li className="flex items-start gap-3">
+                            <Phone size={18} className="text-blue-500 flex-shrink-0" />
+                            <span>+254 111 461 415</span>
+                        </li>
+                        <li className="flex items-start gap-3">
+                            <MapPin size={18} className="text-blue-500 flex-shrink-0" />
+                            <span>Nairobi, Kenya</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                <p className="text-slate-500 text-sm">
+                    © {new Date().getFullYear()} WriterOpsPro. All rights reserved.
+                </p>
+                <div className="flex gap-6 text-sm text-slate-500">
+                    <a href="#" className="hover:text-white transition-colors">Terms</a>
+                    <a href="#" className="hover:text-white transition-colors">Privacy</a>
+                    <a href="#" className="hover:text-white transition-colors">Cookies</a>
+                </div>
+            </div>
+        </div>
+      </footer>
+
+      {/* Floating WhatsApp Button */}
+      <a 
+        href="https://wa.me/254111461415" 
+        target="_blank" 
+        rel="noreferrer"
+        className="fixed bottom-6 right-6 z-40 bg-green-500 text-white px-5 py-3 rounded-full font-bold shadow-lg hover:bg-green-600 hover:scale-105 transition-all flex items-center gap-2"
+      >
+        <MessageCircle size={24} />
+        Chat with us
+      </a>
     </div>
   );
 };

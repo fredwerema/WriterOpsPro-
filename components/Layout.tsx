@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Briefcase, Wallet, LogOut, CheckCircle, ShieldAlert, PlusCircle, GraduationCap, ClipboardList, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Wallet, LogOut, CheckCircle, ShieldAlert, PlusCircle, GraduationCap, ClipboardList, Menu, X, MessageCircle } from 'lucide-react';
 import { Profile, UserRole } from '../types';
 
 interface LayoutProps {
@@ -161,6 +161,17 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       <main className="flex-1 overflow-auto relative w-full bg-slate-50">
         {children}
       </main>
+
+      {/* Floating WhatsApp Button */}
+      <a 
+        href="https://wa.me/254111461415" 
+        target="_blank" 
+        rel="noreferrer"
+        className="fixed bottom-6 right-6 z-40 bg-green-500 text-white px-5 py-3 rounded-full font-bold shadow-lg hover:bg-green-600 hover:scale-105 transition-all flex items-center gap-2"
+      >
+        <MessageCircle size={24} />
+        Chat with us
+      </a>
     </div>
   );
 };

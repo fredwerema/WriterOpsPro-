@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { taskService, SQL_SETUP_SCRIPT } from '../../services/mockDatabase';
-import { Task, TaskStatus } from '../../types';
+import { taskService } from '../../services/mockDatabase';
+import { Task } from '../../types';
 import { 
   ClipboardList, 
   CheckCircle, 
@@ -11,19 +11,12 @@ import {
   User,
   DollarSign,
   RefreshCw,
-  Clock,
-  Database,
-  Copy,
-  X,
-  AlertTriangle,
-  ExternalLink
+  Clock
 } from 'lucide-react';
 
 const AdminReview: React.FC = () => {
   const [reviews, setReviews] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showSql, setShowSql] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     loadReviews();
@@ -53,20 +46,10 @@ const AdminReview: React.FC = () => {
     
     if (!result.success) {
         console.error("Review Process Failed:", result.message);
-        // If error is related to DB/Permissions, automatically show the fix modal
-        if (result.message?.includes('Database') || result.message?.includes('Permission') || result.message?.includes('invalid')) {
-            setShowSql(true);
-        }
         alert(`Operation Failed: ${result.message}`);
         // Revert on failure
         setReviews(originalReviews);
     }
-  };
-
-  const handleCopySql = () => {
-    navigator.clipboard.writeText(SQL_SETUP_SCRIPT);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -77,13 +60,6 @@ const AdminReview: React.FC = () => {
             <p className="text-slate-500">Review submissions and approve payments.</p>
         </div>
         <div className="flex gap-2">
-            <button 
-                onClick={() => setShowSql(true)}
-                className="flex items-center gap-2 px-3 py-2 bg-slate-900 text-white hover:bg-slate-800 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-slate-900/10"
-                title="Run this if you see errors"
-            >
-                <Database size={16} /> Show SQL Fix
-            </button>
             <button 
                 onClick={loadReviews}
                 className="p-2 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
@@ -190,67 +166,6 @@ const AdminReview: React.FC = () => {
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Database Fix Modal */}
-      {showSql && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]">
-                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-red-50">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-red-100 rounded-lg text-red-600">
-                            <AlertTriangle size={20} />
-                        </div>
-                        <h3 className="text-lg font-bold text-red-900">Database Action Required</h3>
-                    </div>
-                    <button onClick={() => setShowSql(false)} className="text-slate-400 hover:text-slate-600">
-                        <X size={24} />
-                    </button>
-                </div>
-                <div className="p-6 overflow-y-auto bg-slate-50">
-                    <p className="text-sm text-slate-600 mb-4 font-medium">
-                        To fix the "Rejected status invalid" error, you must update the database schema.
-                        This cannot be done automatically from here.
-                    </p>
-                    
-                    <div className="bg-white border-2 border-slate-200 rounded-xl p-4 mb-4">
-                        <div className="flex justify-between items-center mb-2">
-                             <span className="text-xs font-bold text-slate-500 uppercase">SQL Script</span>
-                             <button 
-                                onClick={handleCopySql}
-                                className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs font-bold rounded-lg transition-colors flex items-center gap-1"
-                            >
-                                {copied ? <CheckCircle size={12} /> : <Copy size={12} />}
-                                {copied ? 'Copied!' : 'Copy Code'}
-                            </button>
-                        </div>
-                        <pre className="bg-slate-900 text-slate-300 p-4 rounded-xl text-xs overflow-x-auto font-mono custom-scrollbar">
-                            {SQL_SETUP_SCRIPT}
-                        </pre>
-                    </div>
-
-                    <div className="mt-4 text-xs text-slate-600 bg-yellow-50 p-4 rounded-xl border border-yellow-100">
-                        <span className="font-bold text-yellow-800 block mb-2 text-sm">Follow these exact steps:</span>
-                        <ol className="list-decimal list-inside space-y-2">
-                            <li>Click the <strong>Copy Code</strong> button above.</li>
-                            <li>Open the <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline inline-flex items-center gap-1">Supabase Dashboard <ExternalLink size={10}/></a>.</li>
-                            <li>Go to the <strong>SQL Editor</strong> tab (left sidebar).</li>
-                            <li>Paste the code into the editor.</li>
-                            <li>Click the <span className="font-bold text-green-600">RUN</span> button.</li>
-                            <li>Return here and try rejecting the task again.</li>
-                        </ol>
-                    </div>
-                </div>
-                <div className="p-6 border-t border-slate-100 flex justify-end">
-                    <button 
-                        onClick={() => setShowSql(false)}
-                        className="px-6 py-2 bg-slate-900 text-white font-bold rounded-lg hover:bg-slate-800 transition-colors"
-                    >
-                        Close
-                    </button>
-                </div>
-            </div>
         </div>
       )}
     </div>

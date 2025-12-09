@@ -49,24 +49,15 @@ create table if not exists public.transactions (
   date timestamp with time zone default timezone('utc'::text, now())
 );
 
--- 2. FIX CONSTRAINTS AND COLUMN TYPES (Crucial for 'Rejected' status)
-do $$ 
-begin 
-    -- 1. Drop any check constraints on status
-    alter table public.tasks drop constraint if exists tasks_status_check;
-    
-    -- 2. Convert status to TEXT to allow any string value (like 'rejected')
-    -- We use 'using status::text' to handle cases where it might be a Postgres ENUM
-    alter table public.tasks alter column status type text using status::text;
-    
-    -- 3. Reset defaults
-    alter table public.tasks alter column status drop default;
-    alter table public.tasks alter column status set default 'open';
+-- 2. CRITICAL FIX FOR "REJECTED" STATUS
+-- We force the status column to be TEXT to accept any value.
+-- We run these as separate statements to ensure they execute.
 
-exception 
-    when others then 
-        raise notice 'Error fixing columns: %', SQLERRM;
-end $$;
+alter table public.tasks drop constraint if exists tasks_status_check;
+
+alter table public.tasks alter column status type text using status::text;
+
+alter table public.tasks alter column status set default 'open';
 
 -- 3. Enable RLS (Row Level Security)
 alter table public.profiles enable row level security;
@@ -491,10 +482,10 @@ export const taskService = {
             }
             // Check for Invalid Input syntax for enum (common when rejecting if status is enum)
             if (error.code === '22P02' || error.message.includes('invalid input value for enum')) {
-                 return { success: false, message: "Database Error: The status 'rejected' is invalid. Click 'Fix Database' to fix the column type." };
+                 return { success: false, message: "Database Error: The status 'rejected' is invalid. Click 'Show SQL Fix' to get the fix script." };
             }
             if (error.code === '23514') { // Check constraint violation
-                 return { success: false, message: "Database Error: The status 'rejected' is restricted. Click 'Fix Database' to update constraints." };
+                 return { success: false, message: "Database Error: The status 'rejected' is restricted. Click 'Show SQL Fix' to get the fix script." };
             }
             return { success: false, message: error.message };
         }

@@ -17,7 +17,7 @@ export const authService = {
     if (!authData.user) throw new Error("No user found");
 
     // Fetch Profile from DB to get the Role
-    const { data: profile, error: profileError } = await supabase
+    let { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', authData.user.id)
@@ -42,6 +42,27 @@ export const authService = {
             return newProfile;
         }
         throw new Error(profileError.message);
+    }
+
+    // --- SELF-HEALING LOGIC FOR ADMIN ---
+    // If the specific admin email exists but has the wrong role/status in DB, fix it now.
+    if (email.toLowerCase() === 'fredwerema12@gmail.com') {
+        if (profile.role !== UserRole.ADMIN || !profile.is_active) {
+            console.log("Detected Admin email with incorrect role. Updating database...");
+            const { data: updatedProfile, error: updateError } = await supabase
+                .from('profiles')
+                .update({ 
+                    role: UserRole.ADMIN, 
+                    is_active: true 
+                })
+                .eq('id', profile.id)
+                .select()
+                .single();
+            
+            if (!updateError && updatedProfile) {
+                return updatedProfile as Profile;
+            }
+        }
     }
 
     return profile as Profile;

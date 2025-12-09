@@ -42,14 +42,11 @@ const AdminReview: React.FC = () => {
     const originalReviews = [...reviews];
     setReviews(prev => prev.filter(t => t.id !== taskId));
 
-    try {
-        const success = await taskService.processReview(taskId, approved);
-        if (!success) {
-            throw new Error("Update failed");
-        }
-    } catch (e) {
+    const result = await taskService.processReview(taskId, approved);
+    
+    if (!result.success) {
+        alert(`Error: ${result.message}`);
         // Revert on failure
-        alert("Failed to process review. Please try again.");
         setReviews(originalReviews);
     }
   };

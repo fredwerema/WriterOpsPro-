@@ -58,6 +58,7 @@ alter table public.bids enable row level security;
 alter table public.transactions enable row level security;
 
 -- 6. Policies (Drop first to avoid errors)
+-- Profiles
 drop policy if exists "Public profiles are viewable by everyone" on public.profiles;
 create policy "Public profiles are viewable by everyone" on public.profiles for select using (true);
 
@@ -67,6 +68,7 @@ create policy "Users can insert their own profile" on public.profiles for insert
 drop policy if exists "Users can update own profile" on public.profiles;
 create policy "Users can update own profile" on public.profiles for update using (auth.uid() = id);
 
+-- Tasks
 drop policy if exists "Tasks are viewable by everyone" on public.tasks;
 create policy "Tasks are viewable by everyone" on public.tasks for select using (true);
 
@@ -76,12 +78,14 @@ create policy "Authenticated users can insert tasks" on public.tasks for insert 
 drop policy if exists "Authenticated users can update tasks" on public.tasks;
 create policy "Authenticated users can update tasks" on public.tasks for update using (auth.role() = 'authenticated');
 
+-- Bids
 drop policy if exists "Bids are viewable by everyone" on public.bids;
 create policy "Bids are viewable by everyone" on public.bids for select using (true);
 
 drop policy if exists "Authenticated users can insert bids" on public.bids;
 create policy "Authenticated users can insert bids" on public.bids for insert with check (auth.role() = 'authenticated');
 
+-- Transactions
 drop policy if exists "Transactions are viewable by everyone" on public.transactions;
 create policy "Transactions are viewable by everyone" on public.transactions for select using (true);
 
@@ -465,18 +469,25 @@ export const taskService = {
     return data as Task[];
   },
 
-  processReview: async (taskId: string, approved: boolean): Promise<boolean> => {
-    const newStatus = approved ? TaskStatus.COMPLETED : TaskStatus.REJECTED; 
-    
-    const { error } = await supabase
-        .from('tasks')
-        .update({ 
-            status: newStatus
-        })
-        .eq('id', taskId);
+  processReview: async (taskId: string, approved: boolean): Promise<{ success: boolean; message?: string }> => {
+    try {
+        const newStatus = approved ? TaskStatus.COMPLETED : TaskStatus.REJECTED; 
+        
+        const { error } = await supabase
+            .from('tasks')
+            .update({ 
+                status: newStatus
+            })
+            .eq('id', taskId);
 
-    if (error) console.error("Process review error:", error);
-    return !error;
+        if (error) {
+            console.error("Supabase Error:", error);
+            return { success: false, message: error.message };
+        }
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, message: e.message || "Unknown error occurred" };
+    }
   }
 };
 

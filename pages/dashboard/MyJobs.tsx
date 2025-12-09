@@ -11,7 +11,9 @@ import {
   Calendar, 
   DollarSign, 
   Paperclip,
-  XCircle
+  XCircle,
+  RefreshCw,
+  MessageCircle
 } from 'lucide-react';
 
 interface MyJobsProps {
@@ -144,6 +146,21 @@ const MyJobs: React.FC<MyJobsProps> = ({ user }) => {
                   {task.description.length > 150 ? `${task.description.substring(0, 150)}...` : task.description}
                 </div>
 
+                {/* Rejected Status Note */}
+                {task.status === TaskStatus.REJECTED && (
+                  <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
+                     <div className="p-2 bg-white text-red-600 rounded-lg shadow-sm border border-red-100">
+                        <MessageCircle size={18} />
+                     </div>
+                     <div>
+                        <p className="text-sm font-bold text-red-900">Action Required</p>
+                        <p className="text-sm text-red-700 mt-1">
+                          Contact the review team for assistance.
+                        </p>
+                     </div>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between border-t border-slate-100 pt-4">
                   <div className="flex items-center gap-1 font-bold text-slate-900">
                     <DollarSign size={16} className="text-green-600" />
@@ -159,7 +176,15 @@ const MyJobs: React.FC<MyJobsProps> = ({ user }) => {
                         : 'bg-slate-900 hover:bg-blue-600 shadow-slate-900/10'
                       }`}
                     >
-                      <Upload size={16} /> {task.status === TaskStatus.REJECTED ? 'Redo & Submit' : 'Submit Work'}
+                      {task.status === TaskStatus.REJECTED ? (
+                        <>
+                          <RefreshCw size={16} /> Redo
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={16} /> Submit Work
+                        </>
+                      )}
                     </button>
                   ) : (
                     <button disabled className="px-5 py-2 bg-slate-100 text-slate-400 text-sm font-bold rounded-lg cursor-not-allowed border border-slate-200">

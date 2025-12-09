@@ -9,7 +9,9 @@ import {
   FileText, 
   Calendar,
   User,
-  DollarSign
+  DollarSign,
+  RefreshCw,
+  Clock
 } from 'lucide-react';
 
 const AdminReview: React.FC = () => {
@@ -21,6 +23,7 @@ const AdminReview: React.FC = () => {
   }, []);
 
   const loadReviews = async () => {
+    setLoading(true);
     const data = await taskService.getReviews();
     setReviews(data);
     setLoading(false);
@@ -35,17 +38,36 @@ const AdminReview: React.FC = () => {
     
     if (!confirmed) return;
 
-    // Optimistic Update
+    // Optimistic Update: Remove from list immediately
+    const originalReviews = [...reviews];
     setReviews(prev => prev.filter(t => t.id !== taskId));
 
-    await taskService.processReview(taskId, approved);
+    try {
+        const success = await taskService.processReview(taskId, approved);
+        if (!success) {
+            throw new Error("Update failed");
+        }
+    } catch (e) {
+        // Revert on failure
+        alert("Failed to process review. Please try again.");
+        setReviews(originalReviews);
+    }
   };
 
   return (
     <div className="p-4 sm:p-8 max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">Task Reviews</h1>
-        <p className="text-slate-500">Review submissions and approve payments.</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+            <h1 className="text-2xl font-bold text-slate-900">Task Reviews</h1>
+            <p className="text-slate-500">Review submissions and approve payments.</p>
+        </div>
+        <button 
+            onClick={loadReviews}
+            className="p-2 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
+            title="Refresh List"
+        >
+            <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
+        </button>
       </div>
 
       {loading ? (
@@ -59,17 +81,23 @@ const AdminReview: React.FC = () => {
             <ClipboardList className="mx-auto text-slate-300 mb-4" size={48} />
             <h3 className="text-lg font-bold text-slate-900">All caught up!</h3>
             <p className="text-slate-500">There are no tasks pending review at the moment.</p>
+            <button 
+                onClick={loadReviews}
+                className="mt-4 text-blue-600 text-sm font-bold hover:underline"
+            >
+                Check again
+            </button>
         </div>
       ) : (
         <div className="grid gap-6">
           {reviews.map(task => (
-            <div key={task.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div key={task.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden animate-fade-in-up">
               <div className="p-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                   <div>
                      <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-bold uppercase rounded-md">
-                           Pending Review
+                        <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-bold uppercase rounded-md flex items-center gap-1">
+                           <Clock size={12} /> Pending Review
                         </span>
                         <span className="text-xs text-slate-400">ID: {task.id}</span>
                      </div>

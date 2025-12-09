@@ -54,17 +54,19 @@ const MyJobs: React.FC<MyJobsProps> = ({ user }) => {
     try {
       const result = await taskService.submitTask(selectedTask.id, submissionNotes, submissionFile);
       if (result.success) {
+        alert(result.message); // Confirm success to user
+        
         // Close modal and refresh list
         setSelectedTask(null);
         setSubmissionFile(null);
         setSubmissionNotes('');
         await fetchMyJobs();
       } else {
-        alert(result.message);
+        alert("Error: " + result.message);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Submission failed. Please try again.");
+      alert("Submission failed. " + error.message);
     } finally {
       setSubmitting(false);
     }
@@ -103,9 +105,18 @@ const MyJobs: React.FC<MyJobsProps> = ({ user }) => {
 
   return (
     <div className="p-4 sm:p-8 max-w-5xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">My Active Jobs</h1>
-        <p className="text-slate-500">Track progress and submit your work.</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+           <h1 className="text-2xl font-bold text-slate-900">My Active Jobs</h1>
+           <p className="text-slate-500">Track progress and submit your work.</p>
+        </div>
+        <button 
+            onClick={fetchMyJobs} 
+            className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors"
+            title="Refresh List"
+        >
+            <RefreshCw size={20} />
+        </button>
       </div>
 
       {loading ? (
@@ -148,7 +159,7 @@ const MyJobs: React.FC<MyJobsProps> = ({ user }) => {
 
                 {/* Rejected Status Note */}
                 {task.status === TaskStatus.REJECTED && (
-                  <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
+                  <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 animate-fade-in-up">
                      <div className="p-2 bg-white text-red-600 rounded-lg shadow-sm border border-red-100">
                         <MessageCircle size={18} />
                      </div>

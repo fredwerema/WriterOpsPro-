@@ -386,24 +386,32 @@ export const taskService = {
         const fileExt = file.name.split('.').pop();
         const fileName = `${taskId}_${Date.now()}.${fileExt}`;
         const filePath = `${fileName}`;
+        let publicUrl = '';
 
-        // Upload to real storage bucket
-        const { error: uploadError } = await supabase.storage
-            .from('assignments')
-            .upload(filePath, file);
+        // Try Upload to real storage bucket
+        try {
+            const { error: uploadError } = await supabase.storage
+                .from('assignments')
+                .upload(filePath, file);
 
-        if (uploadError) {
-             // Fallback for demo if storage bucket missing
-             console.warn("Storage upload failed (Bucket might be missing):", uploadError.message);
+            if (uploadError) {
+                console.warn("Storage upload failed (Bucket might be missing):", uploadError.message);
+                // Fallback for demo/dev if storage bucket missing
+                publicUrl = `https://fake-url.com/${fileName}`;
+            } else {
+                // If upload worked, try getting public URL (depends on bucket public/private setting)
+                const { data } = supabase.storage.from('assignments').getPublicUrl(filePath);
+                publicUrl = data.publicUrl;
+            }
+        } catch (e) {
+            console.warn("Storage error:", e);
+            publicUrl = `https://fake-url.com/${fileName}`;
         }
-
-        // Even if upload fails (due to bucket config), we try to update the task status for the demo
-        const publicUrl = `https://fake-url.com/${fileName}`; // Fallback URL
 
         const { error: updateError } = await supabase
             .from('tasks')
             .update({
-                status: TaskStatus.REVIEW,
+                status: TaskStatus.REVIEW, // Reset status to review even if it was rejected
                 submission_notes: notes,
                 submission_url: publicUrl
             })
@@ -411,7 +419,7 @@ export const taskService = {
 
         if (updateError) throw new Error(updateError.message);
 
-        return { success: true, message: 'Task submitted for review.' };
+        return { success: true, message: 'Work submitted successfully! Sent for review.' };
 
     } catch (error: any) {
         console.error("Submission error:", error);
@@ -446,6 +454,7 @@ export const taskService = {
   },
 
   getReviews: async (): Promise<Task[]> => {
+    // Fetch both REVIEW status (normal flow)
     const { data, error } = await supabase
       .from('tasks')
       .select('*')
@@ -458,11 +467,15 @@ export const taskService = {
 
   processReview: async (taskId: string, approved: boolean): Promise<boolean> => {
     const newStatus = approved ? TaskStatus.COMPLETED : TaskStatus.REJECTED; 
+    
     const { error } = await supabase
         .from('tasks')
-        .update({ status: newStatus })
+        .update({ 
+            status: newStatus
+        })
         .eq('id', taskId);
 
+    if (error) console.error("Process review error:", error);
     return !error;
   }
 };

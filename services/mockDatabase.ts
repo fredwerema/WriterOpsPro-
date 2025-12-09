@@ -1,63 +1,93 @@
 import { supabase } from '../lib/supabase';
 import { Profile, Task, TaskStatus, Transaction, UserRole, Bid, JOB_CATEGORIES } from '../types';
 
-/**
- * ------------------------------------------------------------------
- * !!! DATABASE SETUP REQUIRED !!!
- * ------------------------------------------------------------------
- * It looks like your Supabase project is missing the required tables.
- * Please go to your Supabase Dashboard -> SQL Editor and run the following script:
- * 
- * -- 1. Profiles Table
- * create table if not exists public.profiles (
- *   id uuid references auth.users on delete cascade primary key,
- *   email text,
- *   phone_number text,
- *   role text default 'writer',
- *   is_active boolean default false,
- *   wallet_balance_cents bigint default 0,
- *   created_at timestamp with time zone default timezone('utc'::text, now()),
- *   updated_at timestamp with time zone default timezone('utc'::text, now())
- * );
- * 
- * -- 2. Tasks Table
- * create table if not exists public.tasks (
- *   id uuid default gen_random_uuid() primary key,
- *   title text not null,
- *   category text,
- *   description text,
- *   price_cents bigint,
- *   status text default 'open',
- *   assigned_to uuid references public.profiles(id),
- *   deadline timestamp with time zone,
- *   submission_url text,
- *   submission_notes text,
- *   created_at timestamp with time zone default timezone('utc'::text, now())
- * );
- * 
- * -- 3. Bids Table
- * create table if not exists public.bids (
- *   id uuid default gen_random_uuid() primary key,
- *   task_id uuid references public.tasks(id),
- *   user_id uuid references public.profiles(id),
- *   amount_cents bigint default 0,
- *   proposal text,
- *   status text default 'pending',
- *   created_at timestamp with time zone default timezone('utc'::text, now())
- * );
- * 
- * -- 4. Transactions Table
- * create table if not exists public.transactions (
- *   id uuid default gen_random_uuid() primary key,
- *   user_id uuid references public.profiles(id),
- *   type text,
- *   amount_cents bigint,
- *   mpesa_reference text,
- *   status text default 'pending',
- *   date timestamp with time zone default timezone('utc'::text, now())
- * );
- * ------------------------------------------------------------------
- */
+export const SQL_SETUP_SCRIPT = `
+-- 1. Profiles Table
+create table if not exists public.profiles (
+  id uuid references auth.users on delete cascade primary key,
+  email text,
+  phone_number text,
+  role text default 'writer',
+  is_active boolean default false,
+  wallet_balance_cents bigint default 0,
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- 2. Tasks Table
+create table if not exists public.tasks (
+  id uuid default gen_random_uuid() primary key,
+  title text not null,
+  category text,
+  description text,
+  price_cents bigint,
+  status text default 'open',
+  assigned_to uuid references public.profiles(id),
+  deadline timestamp with time zone,
+  submission_url text,
+  submission_notes text,
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- 3. Bids Table
+create table if not exists public.bids (
+  id uuid default gen_random_uuid() primary key,
+  task_id uuid references public.tasks(id),
+  user_id uuid references public.profiles(id),
+  amount_cents bigint default 0,
+  proposal text,
+  status text default 'pending',
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- 4. Transactions Table
+create table if not exists public.transactions (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.profiles(id),
+  type text,
+  amount_cents bigint,
+  mpesa_reference text,
+  status text default 'pending',
+  date timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- 5. Enable RLS
+alter table public.profiles enable row level security;
+alter table public.tasks enable row level security;
+alter table public.bids enable row level security;
+alter table public.transactions enable row level security;
+
+-- 6. Policies (Drop first to avoid errors)
+drop policy if exists "Public profiles are viewable by everyone" on public.profiles;
+create policy "Public profiles are viewable by everyone" on public.profiles for select using (true);
+
+drop policy if exists "Users can insert their own profile" on public.profiles;
+create policy "Users can insert their own profile" on public.profiles for insert with check (auth.uid() = id);
+
+drop policy if exists "Users can update own profile" on public.profiles;
+create policy "Users can update own profile" on public.profiles for update using (auth.uid() = id);
+
+drop policy if exists "Tasks are viewable by everyone" on public.tasks;
+create policy "Tasks are viewable by everyone" on public.tasks for select using (true);
+
+drop policy if exists "Authenticated users can insert tasks" on public.tasks;
+create policy "Authenticated users can insert tasks" on public.tasks for insert with check (auth.role() = 'authenticated');
+
+drop policy if exists "Authenticated users can update tasks" on public.tasks;
+create policy "Authenticated users can update tasks" on public.tasks for update using (auth.role() = 'authenticated');
+
+drop policy if exists "Bids are viewable by everyone" on public.bids;
+create policy "Bids are viewable by everyone" on public.bids for select using (true);
+
+drop policy if exists "Authenticated users can insert bids" on public.bids;
+create policy "Authenticated users can insert bids" on public.bids for insert with check (auth.role() = 'authenticated');
+
+drop policy if exists "Transactions are viewable by everyone" on public.transactions;
+create policy "Transactions are viewable by everyone" on public.transactions for select using (true);
+
+drop policy if exists "Authenticated users can insert transactions" on public.transactions;
+create policy "Authenticated users can insert transactions" on public.transactions for insert with check (auth.role() = 'authenticated');
+`;
 
 // --- REAL DATABASE SERVICE ---
 
@@ -308,14 +338,8 @@ export const taskService = {
       } catch (error: any) {
           // Check for missing table error
           if (error.message?.includes('Could not find the table') || error.message?.includes('relation "public.bids" does not exist')) {
-              console.error(`
-======================================================
-DATABASE ERROR: Missing 'bids' table.
-Run the SQL script provided at the top of 'services/mockDatabase.ts'
-in your Supabase SQL Editor.
-======================================================
-              `);
-              return { success: false, message: "System Error: Database table 'bids' is missing. Please contact admin or check console." };
+              console.error(SQL_SETUP_SCRIPT); // Log the script
+              return { success: false, message: "System Error: Database table 'bids' is missing. Please contact admin." };
           }
           return { success: false, message: "Failed to submit application: " + error.message };
       }

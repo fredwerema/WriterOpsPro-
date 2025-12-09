@@ -3,13 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { authService } from '../../services/mockDatabase';
 import { Profile } from '../../types';
 
-interface LoginProps {
+interface RegisterProps {
   onLogin: (user: Profile) => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
+const Register: React.FC<RegisterProps> = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -19,12 +20,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setLoading(true);
     setError(null);
     try {
-      const user = await authService.login(email, password);
+      // Changed from login to register method
+      const user = await authService.register(email, password, phone);
       onLogin(user);
-      navigate('/dashboard/tasks');
+      navigate('/activate');
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Failed to sign in. Check credentials.");
+      setError(err.message || "Registration failed.");
     } finally {
       setLoading(false);
     }
@@ -34,8 +36,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
       <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl border border-slate-100">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-slate-900">Welcome back</h2>
-          <p className="text-slate-500 mt-2">Sign in to access your dashboard</p>
+          <h2 className="text-3xl font-bold text-slate-900">Create Account</h2>
+          <p className="text-slate-500 mt-2">Join the elite freelance workforce</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -44,7 +46,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 {error}
             </div>
           )}
-          
+
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Email Address</label>
             <input
@@ -62,11 +64,25 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <input
               type="password"
               required
+              minLength={6}
               className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">M-PESA Phone Number</label>
+            <input
+              type="tel"
+              required
+              className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
+              placeholder="07XX XXX XXX"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+            <p className="text-xs text-slate-500 mt-1">Used for receiving payments and account activation.</p>
           </div>
 
           <button
@@ -77,15 +93,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             {loading ? (
               <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
             ) : (
-              'Sign In'
+              'Create Account'
             )}
           </button>
         </form>
 
         <div className="mt-6 text-center text-sm text-slate-500">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-blue-600 font-semibold hover:underline">
-            Create Account
+          Already have an account?{' '}
+          <Link to="/login" className="text-blue-600 font-semibold hover:underline">
+            Sign In
           </Link>
         </div>
       </div>
@@ -93,4 +109,4 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   );
 };
 
-export default Login;
+export default Register;

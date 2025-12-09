@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CheckCircle, GraduationCap, Zap, ShieldCheck } from 'lucide-react';
+import { ArrowRight, GraduationCap, Zap, ShieldCheck } from 'lucide-react';
 
 const Landing: React.FC = () => {
   return (

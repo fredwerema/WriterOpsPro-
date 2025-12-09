@@ -2,7 +2,6 @@ import { supabase } from '../lib/supabase';
 import { Profile, Task, TaskStatus, Transaction, UserRole, Bid, JOB_CATEGORIES } from '../types';
 
 // --- REAL DATABASE SERVICE ---
-// Note: Ensure you have run the SUPABASE_SETUP.sql in your Supabase SQL Editor.
 
 export const authService = {
   // Login with Supabase Auth
@@ -17,7 +16,7 @@ export const authService = {
     if (authError) throw new Error(authError.message);
     if (!authData.user) throw new Error("No user found");
 
-    // Fetch Profile from DB
+    // Fetch Profile from DB to get the Role
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')

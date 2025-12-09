@@ -3,7 +3,29 @@ import { Profile, Task, TaskStatus, Transaction, UserRole, Bid, JOB_CATEGORIES }
 
 // --- UPDATED SQL SCRIPT FOR PERMISSIVE ACCESS ---
 export const SQL_SETUP_SCRIPT = `
--- 1. Create Tables (if they don't exist)
+-- 1. DROP EXISTING POLICIES FIRST
+-- Postgres prevents altering column types if they are used in policies.
+-- We must drop ALL potential policies referencing 'status' before altering it.
+
+drop policy if exists "Anyone can view open tasks" on public.tasks;
+drop policy if exists "Writers can view assigned tasks" on public.tasks;
+drop policy if exists "Enable read access for all users" on public.tasks;
+drop policy if exists "Enable all for tasks" on public.tasks;
+drop policy if exists "Public tasks view" on public.tasks;
+drop policy if exists "Authenticated users can upload tasks" on public.tasks;
+
+-- Drop policies on other tables to ensure clean slate
+drop policy if exists "Enable all for profiles" on public.profiles;
+drop policy if exists "Enable all for bids" on public.bids;
+drop policy if exists "Enable all for transactions" on public.transactions;
+
+-- 2. ALTER COLUMNS & CONSTRAINTS
+-- Now that policies are gone, we can safely change the type to TEXT.
+alter table public.tasks drop constraint if exists tasks_status_check;
+alter table public.tasks alter column status type text using status::text;
+alter table public.tasks alter column status set default 'open';
+
+-- 3. CREATE TABLES (Idempotent - only creates if missing)
 create table if not exists public.profiles (
   id uuid references auth.users on delete cascade primary key,
   email text,
@@ -49,39 +71,17 @@ create table if not exists public.transactions (
   date timestamp with time zone default timezone('utc'::text, now())
 );
 
--- 2. CRITICAL FIX FOR "REJECTED" STATUS
--- We force the status column to be TEXT to accept any value.
--- We run these as separate statements to ensure they execute.
-
-alter table public.tasks drop constraint if exists tasks_status_check;
-
-alter table public.tasks alter column status type text using status::text;
-
-alter table public.tasks alter column status set default 'open';
-
--- 3. Enable RLS (Row Level Security)
+-- 4. ENABLE RLS
 alter table public.profiles enable row level security;
 alter table public.tasks enable row level security;
 alter table public.bids enable row level security;
 alter table public.transactions enable row level security;
 
--- 4. NUCLEAR POLICIES (Allow ALL operations for authenticated users)
--- This fixes the "Failed to process review" error by allowing updates.
-
--- Profiles
-drop policy if exists "Enable all for profiles" on public.profiles;
+-- 5. RE-CREATE PERMISSIVE POLICIES
+-- These allow the application to function without permission errors.
 create policy "Enable all for profiles" on public.profiles for all using (true) with check (true);
-
--- Tasks
-drop policy if exists "Enable all for tasks" on public.tasks;
 create policy "Enable all for tasks" on public.tasks for all using (true) with check (true);
-
--- Bids
-drop policy if exists "Enable all for bids" on public.bids;
 create policy "Enable all for bids" on public.bids for all using (true) with check (true);
-
--- Transactions
-drop policy if exists "Enable all for transactions" on public.transactions;
 create policy "Enable all for transactions" on public.transactions for all using (true) with check (true);
 `;
 
@@ -486,6 +486,10 @@ export const taskService = {
             }
             if (error.code === '23514') { // Check constraint violation
                  return { success: false, message: "Database Error: The status 'rejected' is restricted. Click 'Show SQL Fix' to get the fix script." };
+            }
+            // Handle the specific Policy dependency error
+            if (error.code === '0A000') {
+                 return { success: false, message: "Database Error: Cannot update status because a policy depends on it. Click 'Show SQL Fix'." };
             }
             return { success: false, message: error.message };
         }

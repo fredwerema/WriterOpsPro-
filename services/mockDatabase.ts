@@ -27,11 +27,15 @@ export const authService = {
         // Handle case where profile might be missing (should be handled by DB trigger, but safe fallback)
         if (profileError.code === 'PGRST116') {
             console.warn("Profile missing, creating default profile.");
+            
+            // Auto-assign Admin role ONLY if email is the specific admin email
+            const role = email.toLowerCase() === 'fredwerema12@gmail.com' ? UserRole.ADMIN : UserRole.WRITER;
+            
             const newProfile: Profile = {
                 id: authData.user.id,
                 email: email,
-                role: UserRole.WRITER,
-                is_active: false,
+                role: role,
+                is_active: role === UserRole.ADMIN, // Auto-activate admin
                 wallet_balance_cents: 0
             };
             await supabase.from('profiles').insert([newProfile]);
@@ -47,11 +51,19 @@ export const authService = {
   register: async (email: string, password?: string, phone?: string): Promise<Profile> => {
     if (!password) throw new Error("Password is required");
 
+    // Logic for Admin role: Only specific email
+    const role = email.toLowerCase() === 'fredwerema12@gmail.com' ? UserRole.ADMIN : UserRole.WRITER;
+    const isActive = role === UserRole.ADMIN; // Admins are active by default
+
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { phone_number: phone, role: UserRole.WRITER }
+        data: { 
+            phone_number: phone, 
+            role: role,
+            is_active: isActive
+        }
       }
     });
 
@@ -78,8 +90,8 @@ export const authService = {
         id: authData.user.id,
         email: email,
         phone_number: phone,
-        role: UserRole.WRITER,
-        is_active: false,
+        role: role,
+        is_active: isActive,
         wallet_balance_cents: 0
     } as Profile;
   },

@@ -20,6 +20,7 @@ const Register: React.FC<RegisterProps> = ({ onLogin }) => {
     setLoading(true);
     setError(null);
     try {
+      // Changed from login to register method
       const user = await authService.register(email, password, phone);
       onLogin(user);
       navigate('/activate');

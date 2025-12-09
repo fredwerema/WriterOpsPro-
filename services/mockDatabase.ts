@@ -457,7 +457,7 @@ export const taskService = {
   },
 
   processReview: async (taskId: string, approved: boolean): Promise<boolean> => {
-    const newStatus = approved ? TaskStatus.COMPLETED : TaskStatus.ASSIGNED; 
+    const newStatus = approved ? TaskStatus.COMPLETED : TaskStatus.REJECTED; 
     const { error } = await supabase
         .from('tasks')
         .update({ status: newStatus })

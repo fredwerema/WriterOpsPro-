@@ -8,7 +8,8 @@ export enum TaskStatus {
   OPEN = 'open',
   ASSIGNED = 'assigned',
   REVIEW = 'review',
-  COMPLETED = 'completed'
+  COMPLETED = 'completed',
+  REJECTED = 'rejected'
 }
 
 export const JOB_CATEGORIES = [

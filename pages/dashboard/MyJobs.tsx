@@ -10,7 +10,8 @@ import {
   X, 
   Calendar, 
   DollarSign, 
-  Paperclip
+  Paperclip,
+  XCircle
 } from 'lucide-react';
 
 interface MyJobsProps {
@@ -87,6 +88,12 @@ const MyJobs: React.FC<MyJobsProps> = ({ user }) => {
             <CheckCircle size={12} /> Completed
           </span>
         );
+      case TaskStatus.REJECTED:
+        return (
+          <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">
+            <XCircle size={12} /> Rejected
+          </span>
+        );
       default:
         return null;
     }
@@ -143,12 +150,16 @@ const MyJobs: React.FC<MyJobsProps> = ({ user }) => {
                     {(task.price_cents / 100).toLocaleString()} KES
                   </div>
 
-                  {task.status === TaskStatus.ASSIGNED ? (
+                  {task.status === TaskStatus.ASSIGNED || task.status === TaskStatus.REJECTED ? (
                     <button 
                       onClick={() => setSelectedTask(task)}
-                      className="px-5 py-2 bg-slate-900 text-white text-sm font-bold rounded-lg hover:bg-blue-600 transition-colors shadow-lg shadow-slate-900/10 flex items-center gap-2"
+                      className={`px-5 py-2 text-white text-sm font-bold rounded-lg transition-colors shadow-lg flex items-center gap-2 ${
+                        task.status === TaskStatus.REJECTED 
+                        ? 'bg-red-600 hover:bg-red-700 shadow-red-500/30' 
+                        : 'bg-slate-900 hover:bg-blue-600 shadow-slate-900/10'
+                      }`}
                     >
-                      <Upload size={16} /> Submit Work
+                      <Upload size={16} /> {task.status === TaskStatus.REJECTED ? 'Redo & Submit' : 'Submit Work'}
                     </button>
                   ) : (
                     <button disabled className="px-5 py-2 bg-slate-100 text-slate-400 text-sm font-bold rounded-lg cursor-not-allowed border border-slate-200">
@@ -167,7 +178,9 @@ const MyJobs: React.FC<MyJobsProps> = ({ user }) => {
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h3 className="text-lg font-bold text-slate-900">Submit Assignment</h3>
+              <h3 className="text-lg font-bold text-slate-900">
+                {selectedTask.status === TaskStatus.REJECTED ? 'Redo Assignment' : 'Submit Assignment'}
+              </h3>
               <button 
                 onClick={() => {
                   setSelectedTask(null);
@@ -185,6 +198,12 @@ const MyJobs: React.FC<MyJobsProps> = ({ user }) => {
                  <p className="text-sm text-slate-500 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
                    {selectedTask.title}
                  </p>
+                 {selectedTask.status === TaskStatus.REJECTED && (
+                   <div className="mt-3 p-3 bg-red-50 text-red-700 text-xs font-medium rounded-lg border border-red-100 flex gap-2 items-start">
+                     <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
+                     Your previous submission was rejected. Please review the requirements and upload a corrected version.
+                   </div>
+                 )}
               </div>
 
               <div className="mb-6">
